@@ -1,9 +1,12 @@
+const _ = require('lodash/fp.js')
 const Hapi = require('@hapi/hapi');
 const { createSendUdp } = require('./udp.js')
 
 const init = async () => {
 
   const sendUdp = createSendUdp(2000)
+
+  let lastMsg = null
 
   const server = Hapi.server({
     port: 3000,
@@ -14,17 +17,25 @@ const init = async () => {
     method: 'GET',
     path: '/',
     handler: (request, h) => {
-
-      return 'Hello World!';
+      return 'UDP Forwarding Service';
+    }
+  });
+  server.route({
+    method: 'GET',
+    path: '/last',
+    handler: (request, h) => {
+      return lastMsg;
     }
   });
   server.route({
     method: 'POST',
     path: '/',
     handler: (request, h) => {
-      const payload = request.payload;
-      if (payload.udp) {
-        sendUdp(payload)
+      if (_.isObject(request.payload)) {
+        lastMsg = { ...request.payload }
+        if (lastMsg.udp) {
+          sendUdp(lastMsg)
+        }
       }
       return {ok: true};
     }
